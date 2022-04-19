@@ -87,10 +87,7 @@ def shapiro_test_df(X):
         curr_infos = []
 
         shapiro_test = shapiro(X[col][X[col].notna()])
-        curr_infos.append(col)
-        curr_infos.append(shapiro_test.statistic)
-        curr_infos.append(shapiro_test.pvalue)
-
+        curr_infos.extend([col, shapiro_test.statistic, shapiro_test.pvalue])
 
         infos.append(np.array(curr_infos))
 
@@ -182,8 +179,6 @@ def paired_test_t_or_Wilcoxon(peakTable_HILIC_POS, X, alpha_shapiro=0.05):
     t0 = time.time()
 
     infos = []
-    
-    count = 0
 
     for variable in X.columns:
 
@@ -203,9 +198,8 @@ def paired_test_t_or_Wilcoxon(peakTable_HILIC_POS, X, alpha_shapiro=0.05):
             val_non_case.append(curr_case[curr_case['Groups'] == 'Non-case'][variable].values[0])
             val_diff.append((curr_case[curr_case['Groups'] == 'Incident'][variable].values[0]) - (curr_case[curr_case['Groups'] == 'Non-case'][variable].values[0]))
             
-        df_var = pd.concat([pd.Series(case_id), pd.Series(val_incident), pd.Series(val_non_case), pd.Series(val_diff)], axis=1)
-        df_var.columns = ['MatchCaseset', 'Incident', 'Non-case', 'Diff']
-        
+        df_var = pd.DataFrame(list(zip(case_id, val_incident, val_non_case, val_diff)), columns = ['MatchCaseset', 'Incident', 'Non-case', 'Diff'])
+
         if scipy.stats.shapiro(df_var['Diff'].values).pvalue > alpha_shapiro:
             
             # difference between paires is normally distributed so paired t-test (parametric)
@@ -237,7 +231,9 @@ def paired_test_t_or_Wilcoxon(peakTable_HILIC_POS, X, alpha_shapiro=0.05):
     
     print('Time to compute : {0}'.format(time.strftime("%H:%M:%S", time.gmtime(time.time() - t0))))
 
-    return infos, df_var
+    return infos
+
+
 
 
 
@@ -251,7 +247,7 @@ input :
 return :
     - input df with some columns added with the corrected p-values
 '''
-def pvalue_correction(df, correction = 'Bonferroni', alpha = 0.05):
+def pvalue_correction(df, correction = 'Benjamini-Hochberg', alpha = 0.05):
 
     ech_size = df.shape[0]
     updated = df.copy()
@@ -284,7 +280,7 @@ def pvalue_correction(df, correction = 'Bonferroni', alpha = 0.05):
     elif correction == 'FDR':
         
         Rejects, AdjustedPValues = statsmodels.stats.multitest.fdrcorrection(df['pvalue'], alpha=alpha, method='indep', is_sorted=False)
-        updated = pd.concat([updated, pd.DataFrame({'pvalueAdjusted': AdjustedPValues, 'H0rejectedAdjusted': Rejects}, index=df.index)], axis=1)
+        updated = pd.concat([updated, pd.DataFrame({'pvalueCorrected': AdjustedPValues, 'H0rejectedCorrected': Rejects}, index=df.index)], axis=1)
         
     else:
         print("Correction not recognized")
@@ -413,8 +409,8 @@ def plot_hist_pvalue(df, alpha=0.05, plot_corrected=False):
         
         
         
-        freq, bins, _ = ax[1].hist(df['pvalueAdjusted'], np.arange(0, 1, alpha), color='coral', edgecolor='black', alpha=0.5, label=f'pvalueAdjusted > {alpha}')
-        count, _ = np.histogram(df['pvalueAdjusted'], bins)
+        freq, bins, _ = ax[1].hist(df['pvalueCorrected'], np.arange(0, 1, alpha), color='coral', edgecolor='black', alpha=0.5, label=f'pvalueCorrected > {alpha}')
+        count, _ = np.histogram(df['pvalueCorrected'], bins)
         for x,y,num in zip(bins, freq, count):
             if num != 0:
                 ax[1].text(x+alpha/3, y+1, num, fontsize=10) # x,y,str
@@ -422,7 +418,7 @@ def plot_hist_pvalue(df, alpha=0.05, plot_corrected=False):
         ax[1].set_title('Histogram of corrected p-values', fontsize=20)
 
         # add green on bin with pvalue < alpha
-        hist2 = ax[1].hist(df['pvalueAdjusted'][df['pvalueAdjusted'] < alpha], np.arange(0, 1, alpha), color='mediumseagreen', edgecolor='black', alpha=1, label=f'pvalueAdjusted < {alpha}')
+        hist2 = ax[1].hist(df['pvalueCorrected'][df['pvalueCorrected'] < alpha], np.arange(0, 1, alpha), color='mediumseagreen', edgecolor='black', alpha=1, label=f'pvalueCorrected < {alpha}')
 
         ax[1].legend(loc='upper right', prop={"size":15})  
 

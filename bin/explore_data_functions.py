@@ -351,30 +351,27 @@ input :
 '''
 def plot_relative_log_abundance(X):
     
-    plt.figure(figsize=(20, 15))
+    plt.figure(figsize=(50, 30))
 
-    plt.suptitle('Relative log abundance', fontsize=20)
+    plt.suptitle('Relative log abundance', fontsize=50)
 
     plt.subplot(2, 1, 1)
-    if X.shape[1] > 100 :
-        X2 = X.iloc[:,:100]
-        rel_log_abundance_metabolite = np.log(X2) - np.log(X2).median()
-    else :
-        rel_log_abundance_metabolite = np.log(X) - np.log(X).median()
+    plt.subplots_adjust(top=0.92)
+    rel_log_abundance_metabolite = np.log(X) - np.log(X).median()
+    
+    xlabel_fontsize = min(3000/X.shape[1], 30)
     boxplot = sns.boxplot(data=rel_log_abundance_metabolite)
-    boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=90)
-    plt.title('Based on metabolites', fontsize=16)
-
+    boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=90, fontsize=xlabel_fontsize)
+    plt.title('Based on metabolites', fontsize=40)
+    
     plt.subplot(2, 1, 2)
     rel_log_abundance_sample = np.log(X) - np.array(np.log(X).median(axis=1)).reshape(X.median(axis=1).shape[0], 1)
     boxplot = sns.boxplot(data=rel_log_abundance_sample.transpose())
-    boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=90)
-    plt.title('Based on samples', fontsize=16)
+    boxplot.set_xticklabels(boxplot.get_xticklabels(), rotation=90, fontsize=18)
+    plt.title('Based on samples', fontsize=40)
 
     plt.subplots_adjust(hspace=0.4)
     plt.show()
-
-    None
     
     
     

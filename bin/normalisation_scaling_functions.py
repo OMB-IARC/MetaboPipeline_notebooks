@@ -24,10 +24,10 @@ def print_stats(X):
 
     
       
-def plot_first_distributions_metabolites(X):
+def plot_first_distributions_metabolites(X, nb_features=4):
     
-    fig, axs = plt.subplots(1, 4, figsize=(20,5))
-    fig.suptitle('Distribution of the first 4 feature values of the peak table', fontsize=20)
+    fig, axs = plt.subplots(1, nb_features, figsize=(20,5))
+    fig.suptitle('Distribution of the first 4 features values of the peak table', fontsize=20)
 
     sns.histplot(ax=axs[0], x=X.iloc[:,0], color='lightblue')
 
@@ -42,7 +42,7 @@ def plot_first_distributions_metabolites(X):
 def plot_first_distributions_samples(X):
     
     fig, axs = plt.subplots(1, 4, figsize=(20,5))
-    fig.suptitle('Distribution of the first 4 feature values of the peak table', fontsize=20)
+    fig.suptitle('Distribution of the first 4 samples values of the peak table', fontsize=20)
 
     sns.histplot(ax=axs[0], x=X.iloc[0,:], color='lightblue')
 
@@ -93,7 +93,7 @@ def boxplot_first_distributions_metabolites(X, list_features=None, n=10):
 def boxplot_first_distributions_metabolites_before_after(X_init, X_norm, list_features=None, n=10):
     
     #fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10), sharey=True)
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 10))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
     fig.suptitle('Before / After')
     
     if list_features == None:

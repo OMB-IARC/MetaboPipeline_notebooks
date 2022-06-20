@@ -26,7 +26,7 @@ inputs :
     - X : peakTable with only variable columns, no metadata
     - dimensions (default=3) : number of principal components
 '''
-def PCA_paired(X, peakTable, dimensions=3):
+def PCA_paired(X, peakTable, col_group, dimensions=3):
     
     pca = PCA()
     components = pca.fit_transform(X)
@@ -39,7 +39,7 @@ def PCA_paired(X, peakTable, dimensions=3):
         components,
         labels=labels,
         dimensions=range(dimensions),
-        color=peakTable['Groups']
+        color=peakTable[col_group]
     )
     fig.update_traces(diagonal_visible=False)
     fig.show()
@@ -51,7 +51,7 @@ plots 3D PCA
 input :
     - X : peakTable with only variable columns, no metadata
 ''' 
-def PCA_3D(X, peakTable):
+def PCA_3D(X, peakTable, col_group):
     
     pca = PCA(n_components=3)
     components = pca.fit_transform(X)
@@ -59,7 +59,7 @@ def PCA_3D(X, peakTable):
     total_var = pca.explained_variance_ratio_.sum() * 100
 
     fig = px.scatter_3d(
-        components, x=0, y=1, z=2, color=peakTable['Groups'],
+        components, x=0, y=1, z=2, color=peakTable[col_group],
         title=f'Total Explained Variance: {total_var:.2f}%',
         labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'},
         opacity=0.7

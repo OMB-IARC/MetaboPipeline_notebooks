@@ -438,3 +438,37 @@ def plot_hist_pvalue(df, alpha=0.05, plot_corrected=False):
         
 
     plt.show()
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def remove_correlated_features(df, threshold=0.95):
+    
+    t0 = time.time()
+    
+    print(f'Initial shape : {df.shape}')
+    
+    cor_matrix = df.corr().abs()
+    upper_tri = cor_matrix.where(np.triu(np.ones(cor_matrix.shape),k=1).astype(np.bool))
+    to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > threshold)]
+    
+    df1 = df.drop(to_drop, axis=1)
+    
+    print(f'Final shape : {df1.shape}')
+    
+    print(f'\nTime to compute : {time.strftime("%Hh%Mm%Ss", time.gmtime(time.time() - t0))}')
+    print('\n', 150 * '#')
+    print(3 * '\n')
+    
+    return df1

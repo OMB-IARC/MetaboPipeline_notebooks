@@ -1,3 +1,37 @@
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import LabelEncoder
+
+
+import time
+
+
+
+import seaborn as sns
+# Tune the visual settings for figures in seaborn
+sns.set_context(
+    "notebook", font_scale=1.2, rc={"axes.titlesize": 15, 'figure.figsize': (15,10)}
+)
+
+from matplotlib import rcParams
+
+sns.set_theme(style="darkgrid")
+
+rcParams['figure.figsize'] = 15,10
+
+
+
+
+############################################################################################################################################
+################################################################### PCA ####################################################################
+############################################################################################################################################
+from sklearn.decomposition import PCA
+
 '''
 Perform PCA on a peak table
 
@@ -100,6 +134,80 @@ def perform_PCA(X, n_components=None, part_explained_variance=None, concat_metad
 
 
 
+############################################################################################################################################
+################################################################# k-best ###################################################################
+############################################################################################################################################
+
+from sklearn.feature_selection import f_classif
+from sklearn.feature_selection import SelectPercentile
+
+
+
+def select_best_features(X, y, k=None, alpha=None, concat_metadata=False, metadata=None):
+    
+    if k==None:
+        k = X.shape[1]
+    if alpha==None:
+        alpha = 2
+    
+    # Assertions
+    if concat_metadata:
+        # assert metadata != None
+        assert not isinstance(metadata, type(None)),\
+            'If <merge_metadata> is set to True, <metadata> has to be provided'
+    
+    # Compute the ANOVA F-value
+    f_statistic, p_values = f_classif(X, y)
+
+    # Create dataframe with f_score and p_value for each feature
+    df_f_classif = pd.DataFrame(list(zip(X.columns.values, f_statistic, p_values)), columns=['features', 'f_scores', 'p_values'])\
+    .sort_values(by ='f_scores', ascending=False)
+    df_f_classif = df_f_classif.round({'f_scores': 3, 'p_values': 4})
+    
+    # Subset df_f_classif based on k and p_value
+    df_f_classif = df_f_classif.iloc[:k,:]
+    df_f_classif = df_f_classif[df_f_classif['p_values'] < alpha]
+    
+    # Subset X with selected features
+    subset = X[df_f_classif['features'].values]
+    
+    # Concat metadata if set to True
+    if concat_metadata:
+        subset = pd.concat([metadata, subset], axis=1)
+    
+    return subset, df_f_classif
+
+
+
+
+
+
+def select_percentile_features(X, y, percentile=100, concat_metadata=False, metadata=None):
+
+    # Compute the ANOVA F-value
+    f_statistic, p_values = f_classif(X, y)
+
+    # Create dataframe with f_score and p_value for each feature
+    df_f_classif = pd.DataFrame(list(zip(X.columns.values, f_statistic, p_values)), columns=['features', 'f_scores', 'p_values'])\
+    .sort_values(by ='f_scores', ascending=False)
+    df_f_classif = df_f_classif.round({'f_scores': 3, 'p_values': 4})
+    
+    # Subset X with selected features
+    selector = SelectPercentile(f_classif, percentile=percentile)
+    X_new = selector.fit_transform(X, y)
+    columns = X.columns.values
+    subset_columns = selector.get_support()
+    kept_features = columns[subset_columns]
+    subset = X[kept_features]
+    
+    # Subset df_f_classif based on ketp features
+    df_f_classif = df_f_classif[df_f_classif['features'].isin(kept_features)]
+    
+    # Concat metadata if set to True
+    if concat_metadata:
+        subset = pd.concat([metadata, subset], axis=1)
+    
+    return subset, df_f_classif
 
 
 
@@ -107,6 +215,10 @@ def perform_PCA(X, n_components=None, part_explained_variance=None, concat_metad
 
 
 
+############################################################################################################################################
+################################################################## t-SNE ###################################################################
+############################################################################################################################################
+from sklearn.manifold import TSNE
 
 
 def perform_tSNE(X, metadata, n_components=2, targets_plot=[], concat_metadata=False):
@@ -239,7 +351,10 @@ def perform_tSNE(X, metadata, n_components=2, targets_plot=[], concat_metadata=F
 
 
 
-
+############################################################################################################################################
+################################################################## UMAP ###################################################################
+############################################################################################################################################
+from umap import UMAP
 
 
 def perform_UMAP(X, metadata, n_components=2, targets_plot=[], concat_metadata=False):

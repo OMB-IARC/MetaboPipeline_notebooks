@@ -27,7 +27,8 @@ def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
     kmeans.fit(X_)
     
     # Step size of the mesh. Decrease to increase the quality of the VQ.
-    h = 0.01  # point in the mesh [x_min, x_max]x[y_min, y_max].
+    h = (X_.max() - X_.min()).max() / 1000
+    #h = 0.01  # point in the mesh [x_min, x_max]x[y_min, y_max].
 
     # Plot the decision boundary. For that, we will assign a color to each
     x_min, x_max = X_.iloc[:, 0].min() - 1, X_.iloc[:, 0].max() + 1
@@ -296,7 +297,7 @@ import scipy.cluster.hierarchy as shc
 from sklearn.cluster import AgglomerativeClustering
 
 
-def plot_dendrogram(X, hline):
+def plot_dendrogram(X, hline=None):
     
     plt.figure(figsize=(30,10))
 
@@ -305,11 +306,11 @@ def plot_dendrogram(X, hline):
                                 distance_sort='descending',
                                 show_leaf_counts=True)
 
-    hline = 6
-    plt.axhline(y=hline, c='k')
+    if not isinstance(hline, type(None)):
+        plt.axhline(y=hline, c='k')
 
     plt.title('Dendrogram', fontsize=18)
-    plt.xticks(fontsize=7)
+    plt.xticks(fontsize=9)
     plt.show()
     
     

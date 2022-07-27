@@ -15,6 +15,8 @@ import seaborn as sns
 
 import statsmodels.stats.multitest
 
+import random
+
 
 
 
@@ -472,3 +474,217 @@ def remove_correlated_features(df, threshold=0.95):
     print(3 * '\n')
     
     return df1
+
+
+
+
+
+
+
+def plot_infos_missing_values(X):
+    
+    print(150 * '#')
+    
+    tot_nb_mv = X.isna().sum().sum()
+    
+    print(f'Total number of missing values : {tot_nb_mv}')
+    print(f'Percent of missing values : {tot_nb_mv / X.size * 100 :.2f}%\n')
+    
+    if tot_nb_mv != 0:
+        
+        # Heatmap missing values
+        plt.figure(figsize=(15,8))
+        sns.heatmap(X.notna(), cbar=False)
+        plt.xlabel('features', fontsize=12)
+        plt.ylabel('samples', fontsize=12)
+        plt.title('Heatmap of missing values\n(Dark points correspond to missing values)', fontsize=18)
+        plt.show()
+        print('\n')
+        
+        # Part of samples missing each compound
+        perc_mv = X.isna().sum() / X.shape[0]
+        plt.figure(figsize=(15,8))
+        plt.plot(perc_mv.sort_values().values, color='b', linewidth=3)
+        plt.xlabel('N° of the compound', fontsize=12)
+        plt.ylabel('Part of samples missing the compound', fontsize=12)
+        plt.title('The part of samples missing each compound', fontsize=18)
+        plt.grid(linestyle='--', linewidth=1)
+        plt.show()
+        print('\n')
+        
+    print(150 * '#')
+    
+    
+    
+    
+    
+    
+    
+def plot_feature_types(peakTable):
+    
+    print(150 * '#')
+    
+    print(f'Data types : \n{peakTable.dtypes.value_counts()}\n')
+    
+    plt.figure(figsize=(8,4))
+    ax = sns.countplot(x=peakTable.dtypes)
+    ax.bar_label(ax.containers[0], fontsize=12)
+    plt.show()
+    
+    print(150 * '#')
+    
+    
+    
+    
+    
+    
+# threshold argument correspond to the absolute value of correlation above which we enlighten the point of the second plot
+def plot_correlation_matrix(X, threshold=0.9):
+    
+    print(150 * '#')
+    
+    # Plot correlation matrix
+    plt.figure(figsize=(30,15))
+    sns.heatmap(X.corr(method='pearson'))
+    plt.title('Correlation matrix', fontsize=18)
+    plt.show()
+    print('\n')
+    
+    # Plot heatmap of highly correlated features
+    plt.figure(figsize=(30,15))
+    sns.heatmap(X.corr(method='pearson').abs() > threshold)
+    plt.title('Heatmap of highly correlated features', fontsize=18)
+    plt.show()
+    print('\n')
+    
+    print(150 * '#', '\n')
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def randomly_remove_values_in_df(peakTable, part_removed=0.1):
+    
+    peakTable_with_Nan = peakTable.copy()
+
+    for i in range(int(part_removed * peakTable.size)):
+    
+        peakTable_with_Nan.iloc[random.randrange(0, peakTable.shape[0]), random.randrange(0, peakTable.shape[1])] = np.nan
+        
+    return peakTable_with_Nan
+
+
+
+
+
+def plot_target(target):
+    
+    print(150 * '#')
+    
+    print(f'Target values : \n{target.value_counts()}\n')
+    
+    plt.figure(figsize=(8,4))
+    ax = sns.countplot(x=target);
+    ax.bar_label(ax.containers[0]);
+    plt.title('Countplot of target values', fontsize=18)
+    plt.show()
+    
+    print(150 * '#', '\n')
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def plot_pairplot_distributions(X, target, nb_features=None, list_features=None):
+
+    print(150 * '#')
+    
+    if (isinstance(nb_features, type(None)) and isinstance(list_features, type(None))):
+        nb_features = 5
+        X_subset = X.iloc[:, :nb_features]
+    elif (not isinstance(nb_features, type(None)) and isinstance(list_features, type(None))):
+        X_subset = X.iloc[:, :nb_features]
+    elif (isinstance(nb_features, type(None)) and not isinstance(list_features, type(None))):
+        X_subset = X.loc[:, list_features]
+    else:
+        assert (isinstance(nb_features, type(None)) or isinstance(list_features, type(None))),\
+            '<nb_features> and <list_features> cannot be both passed as argument'
+    
+    print()
+    
+    fig = plt.figure(figsize=(10,10));
+
+    data = pd.concat([target, X_subset], axis=1)
+    g = sns.pairplot(data=data, hue=target.name);
+
+    for ax in g.axes.flatten():
+        # rotate x axis labels
+        ax.set_xlabel(ax.get_xlabel(), rotation = 45);
+        # rotate y axis labels
+        ax.set_ylabel(ax.get_ylabel(), rotation = 45);
+        # set y labels alignment
+        ax.yaxis.get_label().set_horizontalalignment('right');
+
+    g.fig.suptitle(t='Pairplot of chosen features distributions', y=1.05, fontsize=18);
+    plt.show();
+    
+    print(150 * '#', '\n')
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def plot_hist_boxplot_distributions(X, target, nb_features=None, list_features=None):
+
+    print(150 * '#')
+    
+    if (isinstance(nb_features, type(None)) and isinstance(list_features, type(None))):
+        nb_features = 5
+        X_subset = X.iloc[:, :nb_features]
+    elif (not isinstance(nb_features, type(None)) and isinstance(list_features, type(None))):
+        X_subset = X.iloc[:, :nb_features]
+    elif (isinstance(nb_features, type(None)) and not isinstance(list_features, type(None))):
+        X_subset = X.loc[:, list_features]
+    else:
+        assert (isinstance(nb_features, type(None)) or isinstance(list_features, type(None))),\
+            '<nb_features> and <list_features> cannot be both passed as argument'
+    
+    print()
+    
+    data = pd.concat([target, X_subset], axis=1)
+    
+    for col in [col for col in X_subset.columns]:
+
+        print(120 * '-')
+        
+        plt.figure(figsize=(16, 6))
+        plt.subplot(1, 2, 1)
+        sns.histplot(data=data, x=data[col], hue=target.name, kde=True, element='step')
+        plt.title('Histogram')
+
+        plt.subplot(1, 2, 2)
+        sns.boxplot(data=data, x=target.name, y=col)
+        plt.title('Boxplot')
+
+        plt.suptitle(col, fontsize=16)
+
+        plt.show()
+        
+    print(120 * '-', '\n')
+    print(150 * '#')

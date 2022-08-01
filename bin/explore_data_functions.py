@@ -481,20 +481,28 @@ def remove_correlated_features(df, threshold=0.95):
 
 
 
-def plot_infos_missing_values(X):
+def plot_infos_missing_values(X, na_values=None, plot=True):
     
-    print(150 * '#')
+    if plot:
+        print(150 * '#')
     
-    tot_nb_mv = X.isna().sum().sum()
+    if isinstance(na_values, type(None)):
+        tot_nb_mv = X.isna().sum().sum()
+        heatmap = X.isna()
+    else:
+        tot_nb_mv = (X == na_values).sum().sum()
+        heatmap = (X == na_values)
     
-    print(f'Total number of missing values : {tot_nb_mv}')
-    print(f'Percent of missing values : {tot_nb_mv / X.size * 100 :.2f}%\n')
+    if plot:
+        print(f'Considering {na_values} as missing values :')
+        print(f'- Total number of missing values : {tot_nb_mv}')
+        print(f'- Percent of missing values : {tot_nb_mv / X.size * 100 :.2f}%\n')
     
-    if tot_nb_mv != 0:
+    if tot_nb_mv != 0 and plot:
         
         # Heatmap missing values
         plt.figure(figsize=(15,8))
-        sns.heatmap(X.notna(), cbar=False)
+        sns.heatmap(~heatmap, cbar=False)
         plt.xlabel('features', fontsize=12)
         plt.ylabel('samples', fontsize=12)
         plt.title('Heatmap of missing values\n(Dark points correspond to missing values)', fontsize=18)
@@ -502,7 +510,7 @@ def plot_infos_missing_values(X):
         print('\n')
         
         # Part of samples missing each compound
-        perc_mv = X.isna().sum() / X.shape[0]
+        perc_mv = heatmap.sum() / X.shape[0]
         plt.figure(figsize=(15,8))
         plt.plot(perc_mv.sort_values().values, color='b', linewidth=3)
         plt.xlabel('N° of the compound', fontsize=12)
@@ -511,6 +519,9 @@ def plot_infos_missing_values(X):
         plt.grid(linestyle='--', linewidth=1)
         plt.show()
         print('\n')
+    
+    else:
+        return tot_nb_mv
         
     print(150 * '#')
     
@@ -539,20 +550,20 @@ def plot_feature_types(peakTable):
     
     
 # threshold argument correspond to the absolute value of correlation above which we enlighten the point of the second plot
-def plot_correlation_matrix(X, threshold=0.9):
+def plot_correlation_matrix(X, threshold=0.9, annot=False, fmt=None):
     
     print(150 * '#')
     
     # Plot correlation matrix
-    plt.figure(figsize=(30,15))
-    sns.heatmap(X.corr(method='pearson'))
+    plt.figure(figsize=(20,10))
+    sns.heatmap(X.corr(method='pearson'), annot=annot, fmt=fmt)
     plt.title('Correlation matrix', fontsize=18)
     plt.show()
     print('\n')
     
     # Plot heatmap of highly correlated features
-    plt.figure(figsize=(30,15))
-    sns.heatmap(X.corr(method='pearson').abs() > threshold)
+    plt.figure(figsize=(20,10))
+    sns.heatmap(X.corr(method='pearson').abs() > threshold, cbar=False)
     plt.title('Heatmap of highly correlated features', fontsize=18)
     plt.show()
     print('\n')

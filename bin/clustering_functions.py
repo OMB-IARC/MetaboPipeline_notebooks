@@ -73,7 +73,7 @@ def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
         sns.scatterplot(x='x',
                         y='y',
                         data=points,
-                        hue='target',
+                        style='target',
                         palette=palette,
                         s=50)
         plot_title = f'K-means clustering on peak table samples\nPoints colored by {target.name}\nCentroids are marked with white cross'
@@ -179,7 +179,7 @@ from itertools import cycle
 def perform_affinity_propagation(X, target=None):
     
     X_ = X.copy()
-    af = AffinityPropagation(preference=-50, random_state=0).fit(X_)
+    af = AffinityPropagation(random_state=0).fit(X_)
     cluster_centers_indices = af.cluster_centers_indices_
     labels = af.labels_
     n_clusters_ = len(cluster_centers_indices)
@@ -315,15 +315,28 @@ def plot_dendrogram(X, hline=None):
     
     
     
-def perform_hierarchical_clustering(X, n_clusters):
+    
+def perform_hierarchical_clustering(X, n_clusters, target=None):
 
     X_ = X.copy()
 
     hc = AgglomerativeClustering(n_clusters=n_clusters, affinity='euclidean', linkage='ward')
     hc.fit(X_)
     
+    if not isinstance(target, type(None)):
+        X_ = pd.concat([X_, target], axis=1)
+
     plt.figure(figsize=(12, 8))
-    plt.scatter(x=X_.iloc[:,0], y=X_.iloc[:,1], c=hc.labels_, cmap='rainbow')
+    
+    if not isinstance(target, type(None)):
+        #plt.scatter(x=X_.iloc[:,0], y=X_.iloc[:,1], c=hc.labels_, cmap='rainbow')
+        sns.scatterplot(x=X_.iloc[:,0], y=X_.iloc[:,1], hue=hc.labels_,
+                        s=100, style=target, palette='rainbow')
+    else:
+        #plt.scatter(x=X_.iloc[:,0], y=X_.iloc[:,1], c=hc.labels_, cmap='rainbow')
+        sns.scatterplot(x=X_.iloc[:,0], y=X_.iloc[:,1], hue=hc.labels_,
+                        s=100, palette='rainbow')
+    
     plt.show()
     
     return hc

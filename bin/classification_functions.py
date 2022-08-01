@@ -120,7 +120,7 @@ def evaluation(X, y, model, plot_each_model=False, plot_hist_score=False, score=
     y = le.transform(y)
     
     # Split into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.75, test_size=0.25, random_state=0, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, test_size=0.2, random_state=0, stratify=y)
 
     # Fit model and predict with test set
     model.fit(X_train, y_train)

@@ -49,14 +49,16 @@ plot :
         x-axis : number of components
         y-axis : cumulative sum
 '''
-def perform_PCA(X, n_components=None, part_explained_variance=None, concat_metadata=False, metadata=None):
+def perform_PCA(X, n_components=None, part_explained_variance=None, concat_metadata=False, metadata=None, scale_before_PCA=False):
     
     
     # Apply StandardScaler() if not already done
-    if (X.mean().mean() < 0.01) & (0.99 < X.std().mean() < 1.01):
-        X_std = X
-    else:
-        X_std = StandardScaler().fit_transform(X)
+    #if (X.mean().mean() < 0.01) & (0.99 < X.std().mean() < 1.01):
+    #    X_std = X
+    #else:
+    #    X_std = StandardScaler().fit_transform(X)
+    if scale_before_PCA:
+        X = StandardScaler().fit_transform(X)
 
     
     # Assertion
@@ -77,7 +79,8 @@ def perform_PCA(X, n_components=None, part_explained_variance=None, concat_metad
         PCA_model = PCA(n_components=n_components)
     else:
         PCA_model = PCA(n_components=part_explained_variance)
-    principal_components = PCA_model.fit_transform(X_std)
+    #principal_components = PCA_model.fit_transform(X_std)
+    principal_components = PCA_model.fit_transform(X)
     
 
     # Prepare column names
@@ -221,7 +224,7 @@ def select_percentile_features(X, y, percentile=100, concat_metadata=False, meta
 from sklearn.manifold import TSNE
 
 
-def perform_tSNE(X, metadata, n_components=2, targets_plot=[], concat_metadata=False):
+def perform_tSNE(X, n_components=2, targets_plot=[], concat_metadata=False, metadata=None):
     
     # Apply StandardScaler() if not already done
     if (X.mean().mean() < 0.01) & (0.99 < X.std().mean() < 1.01):

@@ -109,7 +109,7 @@ def plot_learning_curve(estimator, title, X, y, axes=None, ylim=None, cv=None, n
 
 
 
-def evaluation(X, y, model, plot_each_model=False, plot_hist_score=False, score='f1-score'):
+def evaluation(X, y, model, plot_each_model=False, plot_hist_score=False, score='f1-score', cv=None, train_size=0.8, test_size=0.2):
     
     # Encode target variable y
     le = LabelEncoder()
@@ -120,7 +120,7 @@ def evaluation(X, y, model, plot_each_model=False, plot_hist_score=False, score=
     y = le.transform(y)
     
     # Split into train and test sets
-    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=0.8, test_size=0.2, random_state=0, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, train_size=train_size, test_size=test_size, random_state=0, stratify=y)
 
     # Fit model and predict with test set
     model.fit(X_train, y_train)
@@ -162,7 +162,7 @@ def evaluation(X, y, model, plot_each_model=False, plot_hist_score=False, score=
         fig, axes = plt.subplots(4, 1, figsize=(8, 24))
         fig.subplots_adjust(hspace=0.3)
         plot_learning_curve(
-            model, title, X, y, axes=axes, ylim=(-0.01,1.1), cv=4, n_jobs=4
+            model, title, X, y, axes=axes, ylim=(-0.01,1.1), cv=cv, n_jobs=4
         )
         df_feature_importance.plot.bar(x='Feature name', y='Feature importance score', yerr=dict_feature_importance.importances_std, ax=axes[3])
         axes[3].set_title('Feature importances using permutation on full model')
@@ -181,7 +181,7 @@ def evaluation(X, y, model, plot_each_model=False, plot_hist_score=False, score=
 
 
 
-def pipeline_classification(X, y, dict_models={}, plot_each_model=False, plot_hist_score=False, score='f1-score'):
+def pipeline_classification(X, y, dict_models={}, plot_each_model=False, plot_hist_score=False, score='f1-score', cv=None, train_size=0.8, test_size=0.2):
     
     t0 = time.time()
     
@@ -215,7 +215,7 @@ def pipeline_classification(X, y, dict_models={}, plot_each_model=False, plot_hi
         if plot_each_model:
             print_header(model_str)
 
-        curr_score, df_feature_importance = evaluation(X=X, y=y, model=dict_models[model_str], plot_each_model=plot_each_model, plot_hist_score=plot_hist_score, score=score)
+        curr_score, df_feature_importance = evaluation(X=X, y=y, model=dict_models[model_str], plot_each_model=plot_each_model, plot_hist_score=plot_hist_score, score=score, cv=cv)
 
         df_scores[model_str] = curr_score
         dict_df_feature_importance[model_str] = df_feature_importance

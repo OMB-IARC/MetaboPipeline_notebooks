@@ -9,6 +9,8 @@ from sklearn import metrics
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import LabelEncoder
 
+from random_functions import *
+
 
 
 
@@ -16,7 +18,7 @@ from sklearn.preprocessing import LabelEncoder
 ################################################################# k-means ##################################################################
 ############################################################################################################################################
 from sklearn.cluster import KMeans
-
+from sklearn.manifold import TSNE
 
 def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
     
@@ -25,6 +27,10 @@ def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
     # Perform k-means
     kmeans = KMeans(n_clusters=n_clusters, n_init=10, init='k-means++', random_state=0)
     kmeans.fit(X_)
+    
+    if X_.shape[1] > 2:
+        print('Inputed dataframe has more than 2 dimensions so we cannot plot results of kmeans clustering.\nPlease use two-dimensional dataframe if you want to see the results plotted.')
+        return kmeans
     
     # Step size of the mesh. Decrease to increase the quality of the VQ.
     h = (X_.max() - X_.min()).max() / 1000
@@ -46,7 +52,14 @@ def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
     
     
     # Prepare cmap to fill with chosen colors
-    cmap = plt.get_cmap('jet')
+    #cmap = plt.get_cmap('jet')
+    #cmap = plt.get_cmap('Pastel2')
+    # Set3
+    
+    # Prepare cmap to fill with chosen colors
+    #cmap = plt.get_cmap('jet')
+    hex_list = ['#0091ad', '#3fcdda', '#83f9f8', '#d6f6eb', '#fdf1d2', '#f8eaad', '#faaaae', '#d16f6f']
+    cmap=get_continuous_cmap(hex_list)
     bounds = np.arange(0, n_clusters)
     norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
@@ -73,7 +86,7 @@ def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
         sns.scatterplot(x='x',
                         y='y',
                         data=points,
-                        style='target',
+                        hue='target',
                         palette=palette,
                         s=50)
         plot_title = f'K-means clustering on peak table samples\nPoints colored by {target.name}\nCentroids are marked with white cross'
@@ -91,9 +104,9 @@ def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
         centroids[:, 0],
         centroids[:, 1],
         marker='x',
-        s=170,
+        s=300,
         linewidths=3,
-        color='b',
+        color='w',
         zorder=1,
     )
     
@@ -111,7 +124,7 @@ def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
 
     print(f'Inertia of k-means model : {kmeans.inertia_ :.2f}')
 
-    if not isinstance(target, type(None)):
+    if not isinstance(target, type(None)) and (len(np.unique(target))==n_clusters):
         labels_true = target
         labels_true = LabelEncoder().fit_transform(labels_true)
         labels_predict = kmeans.labels_
@@ -120,48 +133,63 @@ def perform_kmeans(X, n_clusters=2, target=None, col_prefix=''):
 
     return kmeans
         
-
     
-def plot_inertia_and_randscore(X, target=None):
+    
+    
+    
+    
+    
+def plot_inertia(X, target=None, max_clusters=None, log=False):
     
     X_ = X.copy()
-    n_clusters = X_.shape[0]
-
+    
+    if isinstance(max_clusters, type(None)):
+        n_clusters = X_.shape[0]
+    else:
+        n_clusters = max_clusters
+            
+        
     inertia = []
     
-    if not isinstance(target, type(None)):
-        rand_score = []
-        labels_true = target.values
-        labels_true = LabelEncoder().fit_transform(labels_true)
+    #if not isinstance(target, type(None)):
+    #    rand_score = []
+    #    labels_true = target.values
+    #    labels_true = LabelEncoder().fit_transform(labels_true)
 
         
     for i in range(1, n_clusters):
 
         kmeans = KMeans(n_clusters=i, n_init=1, init='k-means++', random_state=0).fit(X_)
-
-        inertia.append(kmeans.inertia_)
-
-        labels_predict = kmeans.labels_
         
-        if not isinstance(target, type(None)):
-            rand_score.append(metrics.adjusted_rand_score(labels_predict, labels_true))
+        if log:
+            curr_inertia = np.log(kmeans.inertia_)
+        else:
+            curr_inertia = kmeans.inertia_
+        
+        inertia.append(curr_inertia)
+
+        #labels_predict = kmeans.labels_
+        
+        #if not isinstance(target, type(None)):
+        #    rand_score.append(metrics.adjusted_rand_score(labels_predict, labels_true))
 
 
-    print(f'Maximum rand score is {max(rand_score):.5f}, obtained with {rand_score.index(max(rand_score))} clusters\n')
+    #print(f'Maximum rand score is {max(rand_score):.5f}, obtained with {rand_score.index(max(rand_score))} clusters\n')
 
 
     plt.figure(figsize=(10,6))
     plt.scatter(np.arange(1, n_clusters), inertia)
     plt.plot(np.arange(1, n_clusters), inertia)
-    plt.title('K-means inertia depending on number of clusters')
+    log_ = '(log value)' if log else ''
+    plt.title(f'K-means inertia {log_} depending on number of clusters')
     plt.show()
 
-    if not isinstance(target, type(None)):
-        plt.figure(figsize=(10,6))
-        plt.scatter(np.arange(1, n_clusters), rand_score)
-        plt.plot(np.arange(1, n_clusters), rand_score)
-        plt.title('K-means rand score depending on number of clusters')
-        plt.show()  
+    #if not isinstance(target, type(None)):
+    #    plt.figure(figsize=(10,6))
+    #    plt.scatter(np.arange(1, n_clusters), rand_score)
+    #    plt.plot(np.arange(1, n_clusters), rand_score)
+    #    plt.title('K-means rand score depending on number of clusters')
+    #    plt.show()  
     
     
     
@@ -363,18 +391,22 @@ def perform_hierarchical_clustering(X, n_clusters, target=None):
 from sklearn.cluster import DBSCAN
 
 
-def perform_DBSCAN(X, target=None):
+def perform_DBSCAN(X, target=None, eps=0.5, min_samples=5):
     
     X_ = X.copy()
 
-    db = DBSCAN(eps=0.3, min_samples=10).fit(X_)
+    db = DBSCAN(eps=eps, min_samples=min_samples).fit(X_)
     core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
     core_samples_mask[db.core_sample_indices_] = True
     labels = db.labels_
 
     # Number of clusters in labels, ignoring noise if present.
     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    if n_clusters_ == 0:
+        return 'DBSCAN detects all points as noise/outliers'
+    
     n_noise_ = list(labels).count(-1)
+    
 
     if not isinstance(target, type(None)):
         labels_true = target
@@ -437,6 +469,31 @@ def perform_DBSCAN(X, target=None):
 
 
 
+def get_eps_optimal_value(df):
+
+    import math
+    from sklearn.neighbors import NearestNeighbors
+    neigh = NearestNeighbors(n_neighbors=5)
+
+    nbrs = neigh.fit(df)
+    distances, indices = nbrs.kneighbors(df)
+
+    # Plotting K-distance Graph
+    distances = np.sort(distances, axis=0)
+    distances = distances[:,1]
+    plt.figure(figsize=(12, 8))
+    plt.plot(distances)
+    plt.title('K-distance Graph',fontsize=20)
+    plt.xlabel('Data Points sorted by distance',fontsize=14)
+    plt.ylabel('Epsilon',fontsize=14)
+    plt.show()
+
+    opt_eps = math.ceil(max(distances) * 10) / 10
+    
+    print(f'Optimal value to pass DBSCAN model is : {opt_eps}')
+    
+    return opt_eps
+
 
 
 
@@ -449,11 +506,11 @@ from sklearn.cluster import OPTICS, cluster_optics_dbscan
 import matplotlib.gridspec as gridspec
 
 
-def perform_OPTICS(X, list_eps=[0.5, 1, 2]):
+def perform_OPTICS(X, list_eps=[0.5, 1, 2], min_samples=5):
     
     X_ = X.copy()
 
-    clust = OPTICS(min_samples=50, xi=0.05, min_cluster_size=0.05)
+    clust = OPTICS(min_samples=min_samples, cluster_method='dbscan')
 
     # Run the fit
     clust.fit(X_)

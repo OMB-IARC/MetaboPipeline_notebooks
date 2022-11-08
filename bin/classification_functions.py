@@ -181,6 +181,9 @@ def evaluation(X, y, model, plot_each_model=False, plot_hist_score=False, score=
 
 
 
+
+
+
 def pipeline_classification(X, y, dict_models={}, plot_each_model=False, plot_hist_score=False, score='f1-score', cv=None, train_size=0.8, test_size=0.2):
     
     t0 = time.time()

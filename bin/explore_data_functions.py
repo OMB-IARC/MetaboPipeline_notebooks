@@ -17,9 +17,32 @@ import statsmodels.stats.multitest
 
 import random
 
+import cimcb_lite as cb
 
 
 
+'''
+plots 3D PCA
+
+input :
+    - X : peakTable with only variable columns, no metadata
+''' 
+def PCA_3D(X, target):
+    
+    pca = PCA(n_components=3)
+    components = pca.fit_transform(X)
+
+    total_var = pca.explained_variance_ratio_.sum() * 100
+
+    fig = px.scatter_3d(
+        components, x=0, y=1, z=2, color=target,
+        title=f'Total Explained Variance: {total_var:.2f}%',
+        labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'},
+        opacity=0.7
+    )
+    fig.show()
+    
+    
 
 '''
 plots 2D PCA, with all paired of principal components
@@ -28,7 +51,7 @@ inputs :
     - X : peakTable with only variable columns, no metadata
     - dimensions (default=3) : number of principal components
 '''
-def PCA_paired(X, peakTable, col_group, dimensions=3):
+def PCA_paired(X, target, dimensions=3):
     
     pca = PCA()
     components = pca.fit_transform(X)
@@ -41,32 +64,71 @@ def PCA_paired(X, peakTable, col_group, dimensions=3):
         components,
         labels=labels,
         dimensions=range(dimensions),
-        color=peakTable[col_group]
+        color=target
     )
     fig.update_traces(diagonal_visible=False)
     fig.show()
     
-
-'''
-plots 3D PCA
-
-input :
-    - X : peakTable with only variable columns, no metadata
-''' 
-def PCA_3D(X, peakTable, col_group):
     
-    pca = PCA(n_components=3)
-    components = pca.fit_transform(X)
+    
+    
+    
+    
+'''
+Plots PCA with number of dimensions passed as argument.
 
-    total_var = pca.explained_variance_ratio_.sum() * 100
+If paired argument is set to False and number of dimensions is 2, we call function of cimcb_lite module.
+If paired argument is set to False and number of dimensions is 3, we create a 3D plot with matplotlib.
+If paired argument is set to True and whatever the number of dimensions, we plot a pairplot of all dimensions.
 
-    fig = px.scatter_3d(
-        components, x=0, y=1, z=2, color=peakTable[col_group],
-        title=f'Total Explained Variance: {total_var:.2f}%',
-        labels={'0': 'PC 1', '1': 'PC 2', '2': 'PC 3'},
-        opacity=0.7
-    )
-    fig.show()
+Inputs :
+    - df : peakTable with only variable columns, no metadata
+    - target : pandas series to plot differents colors on the PCA
+    - dimensions (default=3) : int, number of principal components
+    - paired (default=False) : boolean, choose type of plot
+'''
+def plot_PCA(df, target, dimensions=3, paired=False):
+    
+    # Copy input dataframe to avoid overwrite original dataframe
+    df_copy = df.copy()
+    
+    # PCA display classic
+    if not paired:
+        
+        # Assert dimensions passed as argument is 2 or 3
+        assert (dimensions==2 or dimensions==3), '<dimensions> has to be 2 or 3'
+
+        # PCA with 2 components
+        if dimensions==2:
+            if plot_infos_missing_values(df_copy, na_values=0, plot=False) == 0:
+                cb.plot.pca(df_copy, pcx=1, pcy=2, group_label=target)
+            else:
+                print('NaNs in peak table, please impute before using PCA')
+
+        # PCA with 3 components
+        if dimensions==3:
+            if plot_infos_missing_values(df_copy, na_values=0, plot=False) == 0:
+                PCA_3D(df_copy, target)
+            else:
+                print('NaNs in peak table, please impute before using PCA')
+                
+    else:
+        if plot_infos_missing_values(df_copy, na_values=0, plot=False) == 0:
+            PCA_paired(df_copy, target, dimensions=dimensions)
+        else:
+            print('NaNs in peak table, please impute before using PCA')
+            
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
 
     
     
@@ -240,112 +302,7 @@ def paired_test_t_or_Wilcoxon(peakTable_HILIC_POS, X, alpha_shapiro=0.05):
 
 
 
-'''
-Correct the list of pvalues using the inputed correction type
-input :
-    - df : dataframe output of function paired_test_t_or_Wilcoxon
-    - correction: name of the multiple testing correction to use (values: Bf, H-BF (by default), Benj-Hoch)
-    - alpha : thresold of significance level
-return :
-    - input df with some columns added with the corrected p-values
-'''
-def pvalue_correction(df, correction = 'Benjamini-Hochberg', alpha = 0.05):
-
-    ech_size = df.shape[0]
-    updated = df.copy()
-    updated['alpha'] = alpha
-    updated['H0rejected'] = updated['pvalue'] < alpha
-    
-    if correction == 'Bonferroni':
-        
-        updated['alphaCorrected'] = alpha / ech_size
-        updated['H0rejectedCorrected'] = updated['pvalue'] < updated['alphaCorrected']
-    
-    elif correction == 'Holm-Bonferroni':
-        
-        updated_sorted = updated.sort_values('pvalue', ascending=True)
-        updated_sorted['Rank'] = np.arange(ech_size, 0, -1)
-        updated_sorted['alphaCorrected'] = updated['alpha'] / updated_sorted['Rank']
-        updated_sorted['H0rejectedCorrected'] = updated_sorted['pvalue'] < updated_sorted['alphaCorrected']
-    
-        updated = updated_sorted.reindex(updated.index)
-        
-    elif correction == 'Benjamini-Hochberg':
-        
-        updated_sorted = updated.sort_values('pvalue', ascending=True)
-        updated_sorted['Rank'] = np.arange(1, ech_size + 1)
-        updated_sorted['alphaCorrected'] = updated_sorted['Rank'] / ech_size * alpha
-        updated_sorted['H0rejectedCorrected'] = updated_sorted['pvalue'] < updated_sorted['alphaCorrected']
-    
-        updated = updated_sorted.reindex(updated.index)
-    
-    elif correction == 'FDR':
-        
-        Rejects, AdjustedPValues = statsmodels.stats.multitest.fdrcorrection(df['pvalue'], alpha=alpha, method='indep', is_sorted=False)
-        updated = pd.concat([updated, pd.DataFrame({'pvalueCorrected': AdjustedPValues, 'H0rejectedCorrected': Rejects}, index=df.index)], axis=1)
-        
-    else:
-        print("Correction not recognized")
-        updated = df
-        
-    return updated
-
-
-
-
-
-'''
-Plot the p-values for each variable
-input :
-    - df : output of function pvalue_correction
-'''
-def plot_pvalue(df):
-    
-    df = df.sort_values(by='pvalue')
-
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(30,6))
-    fig.suptitle('p-value for each feature', fontsize=20, y=1.05)    
-    
-    # whole plot
-    ax1.plot(df['pvalue'].values, color='b', linewidth=2, label='p-value')
-    ax1.plot(df['alpha'].values, color='r', linewidth=1, label='alpha')
-    ax1.plot(df['alphaCorrected'].values, color='g', linewidth=1, label='alphaCorrected')
-    ax1.set_xlabel('N° of the compound', fontsize=12)
-    ax1.set_ylabel('p-value', fontsize=12)
-    ax1.legend(loc='upper left', prop={'size': 12})
-    ax1.set_title('whole plot', fontsize=15)
-    ax1.grid(linestyle='--', linewidth=1)
-    
-    
-    # zoom on features under alpha
-    subset1 = df.loc[:df[df['H0rejected'] == False].index[2], :]
-    
-    ax2.plot(subset1['pvalue'].values, color='b', linewidth=2, label='p-value')
-    ax2.plot(subset1['alpha'].values, color='r', linewidth=2, label='alpha')
-    ax2.plot(subset1['alphaCorrected'].values, color='g', linewidth=2, label='alphaCorrected')
-    ax2.set_xlabel('N° of the compound', fontsize=12)
-    ax2.set_ylabel('p-value', fontsize=12)
-    ax2.legend(loc='upper left', prop={'size': 12})
-    ax2.set_title('zoom on features under alpha', fontsize=15)
-    ax2.grid(linestyle='--', linewidth=1)
-    
-    
-    # zoom on features under alphaCorrected
-    subset2 = df.loc[:df[df['H0rejectedCorrected'] == False].index[0], :]
-    
-    ax3.plot(subset2['pvalue'].values, color='b', linewidth=2, label='p-value')
-    ax3.plot(subset2['alphaCorrected'].values, color='g', linewidth=2, label='alphaCorrected')
-    ax3.set_xlabel('N° of the compound', fontsize=12)
-    ax3.set_ylabel('p-value', fontsize=12)
-    ax3.ticklabel_format(useOffset=False, style='plain')
-    ax3.legend(loc='upper left', prop={'size': 12})
-    ax3.set_title('zoom on features under alphaCorrected', fontsize=15)
-    ax3.grid(linestyle='--', linewidth=1)
-    
-    
-
-    
-    
+   
 '''
 Plot the relative log abundance for each variable and each sample
 input :
@@ -380,88 +337,18 @@ def plot_relative_log_abundance(X):
     
     
     
-    
-'''
-Plot the histogram of pvalues
-input :
-    - df : dataframe output of function paired_test_t_or_Wilcoxon
-    - alpha : chosen threshold for alpha
-'''  
-def plot_hist_pvalue(df, alpha=0.05, plot_corrected=False):
-    
-    if plot_corrected:
-        
-        fig, ax = plt.subplots(1, 2, figsize=(24, 8))
 
-        freq, bins, _ = ax[0].hist(df['pvalue'], np.arange(0, 1, alpha), color='coral', edgecolor='black', alpha=0.5, label=f'pvalue > {alpha}')
-        count, _ = np.histogram(df['pvalue'], bins)
-        for x,y,num in zip(bins, freq, count):
-            if num != 0:
-                ax[0].text(x+alpha/3, y+1, num, fontsize=10) # x,y,str
-        ax[0].set_xticks(np.arange(0, 1, 0.05))
-        ax[0].set_title('Histogram of p-values', fontsize=20)
-
-        # add green on bin with pvalue < alpha
-        hist2 = ax[0].hist(df['pvalue'][df['pvalue'] < alpha], np.arange(0, 1, alpha), color='mediumseagreen', edgecolor='black', alpha=1, label=f'pvalue < {alpha}')
-
-        ax[0].legend(loc='upper right', prop={"size":15})   
-        
-        
-        
-        freq, bins, _ = ax[1].hist(df['pvalueCorrected'], np.arange(0, 1, alpha), color='coral', edgecolor='black', alpha=0.5, label=f'pvalueCorrected > {alpha}')
-        count, _ = np.histogram(df['pvalueCorrected'], bins)
-        for x,y,num in zip(bins, freq, count):
-            if num != 0:
-                ax[1].text(x+alpha/3, y+1, num, fontsize=10) # x,y,str
-        ax[1].set_xticks(np.arange(0, 1, 0.05))
-        ax[1].set_title('Histogram of corrected p-values', fontsize=20)
-
-        # add green on bin with pvalue < alpha
-        hist2 = ax[1].hist(df['pvalueCorrected'][df['pvalueCorrected'] < alpha], np.arange(0, 1, alpha), color='mediumseagreen', edgecolor='black', alpha=1, label=f'pvalueCorrected < {alpha}')
-
-        ax[1].legend(loc='upper right', prop={"size":15})  
-
-        
-    else:
-        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-
-        freq, bins, _ = ax.hist(df['pvalue'], np.arange(0, 1, alpha), color='coral', edgecolor='black', alpha=0.5, label=f'pvalue > {alpha}')
-        count, _ = np.histogram(df['pvalue'], bins)
-        for x,y,num in zip(bins, freq, count):
-            if num != 0:
-                ax.text(x+alpha/3, y+1, num, fontsize=10) # x,y,str
-        ax.set_xticks(np.arange(0, 1, 0.05))
-        plt.title('Histogram of p-values', fontsize=20)
-
-        # add green on bin with pvalue < alpha
-        hist2 = ax.hist(df['pvalue'][df['pvalue'] < alpha], np.arange(0, 1, alpha), color='mediumseagreen', edgecolor='black', alpha=1, label=f'pvalue < {alpha}')
-
-        plt.legend(loc='upper right', prop={"size":15})       
-        
-
-    plt.show()
     
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-def remove_correlated_features(df, threshold=0.95):
+def remove_correlated_features(df, threshold=0.95, method='spearman'):
     
     t0 = time.time()
     
     print(f'Initial shape : {df.shape}')
     
-    cor_matrix = df.corr().abs()
+    cor_matrix = df.corr(method=method).abs()
     upper_tri = cor_matrix.where(np.triu(np.ones(cor_matrix.shape),k=1).astype(np.bool))
     to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > threshold)]
     
@@ -550,20 +437,22 @@ def plot_feature_types(peakTable):
     
     
 # threshold argument correspond to the absolute value of correlation above which we enlighten the point of the second plot
-def plot_correlation_matrix(X, threshold=0.9, annot=False, fmt=None):
+def plot_correlation_matrix(X, threshold=0.9, method='spearman', annot=False, fmt=None):
     
     print(150 * '#')
     
+    corr = X.corr(method=method)
+    
     # Plot correlation matrix
     plt.figure(figsize=(20,10))
-    sns.heatmap(X.corr(method='pearson'), annot=annot, fmt=fmt)
+    sns.heatmap(corr, annot=annot, fmt=fmt)
     plt.title('Correlation matrix', fontsize=18)
     plt.show()
     print('\n')
     
     # Plot heatmap of highly correlated features
     plt.figure(figsize=(20,10))
-    sns.heatmap(X.corr(method='pearson').abs() > threshold, cbar=False)
+    sns.heatmap(corr.abs() > threshold)
     plt.title('Heatmap of highly correlated features', fontsize=18)
     plt.show()
     print('\n')
@@ -699,3 +588,25 @@ def plot_hist_boxplot_distributions(X, target, nb_features=None, list_features=N
         
     print(120 * '-', '\n')
     print(150 * '#')
+    
+    
+    
+    
+    
+    
+    
+    
+    
+def plot_nb_unique_qualitative_metadata(metadata):
+    
+    print(150 * '#')
+
+    unique_values = metadata[metadata.dtypes[metadata.dtypes == 'object'].index].nunique().sort_values()
+
+    plt.figure(figsize=(8,4))
+    ax = sns.barplot(x=unique_values.index, y=unique_values.values);
+    ax.bar_label(ax.containers[0], fontsize=12)
+    plt.show()
+    
+    print(150 * '#')
+    

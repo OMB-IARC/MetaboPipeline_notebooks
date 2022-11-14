@@ -1,4 +1,4 @@
-# metabopipeline notebooks to be used in Binder
+# metabopipeline notebooks
 
 To launch each notebook, just click on the button next to the notebook name :
 - *Binder integration of notebooks currently in development*

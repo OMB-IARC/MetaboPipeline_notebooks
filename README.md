@@ -12,7 +12,7 @@ Each subfolder with name *analyse_XXX* contains one notebook with an example of 
 
 ## Integration in the MetaboPipeline_bioinfo pipeline
 
-This set of notebooks is designed to be used in the MetaboPipeline_bioinfo pipeline. Package management and version control are handled with a Docker image ([link to DockerHub](https://hub.docker.com/r/maxvin/data_science_img)).
+This set of notebooks is designed to be used in the MetaboPipeline_bioinfo pipeline. Package management is handled with a Docker image ([link to DockerHub](https://hub.docker.com/r/maxvin/data_science_img)).
 
 For for information about installation, please see [MetaboPipeline_bioinfo pipeline repo](https://github.com/OMB-IARC/MetaboPipeline_bioinfo).
 

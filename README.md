@@ -17,12 +17,12 @@ This set of notebooks is designed to be used in the MetaboPipeline_bioinfo pipel
 For for information about installation, please see [MetaboPipeline_bioinfo pipeline repo](https://github.com/OMB-IARC/MetaboPipeline_bioinfo).
 
 
+---
 
 ## Binder (still in development)
 
 To launch each notebook, just click on the button next to the notebook name :
 - *Binder integration of notebooks currently in development*
 
----
 
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/maxvincent24/metabopipeline_notebooks/HEAD?labpath=notebooks%2F0-TUTORIAL%2F1-explore_data.ipynb)
